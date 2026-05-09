@@ -78,7 +78,7 @@ pub const Instruction = struct {
     address_mode: AddressMode,
 };
 
-pub fn lookup(opcode: u8) ?Instruction {
+pub fn decode(opcode: u8) ?Instruction {
     return switch (opcode) {
         0x69 => .{ .operation = .ADC, .address_mode = .Immediate },
         0x65 => .{ .operation = .ADC, .address_mode = .ZeroPage },
@@ -88,6 +88,19 @@ pub fn lookup(opcode: u8) ?Instruction {
         0x79 => .{ .operation = .ADC, .address_mode = .AbsoluteY },
         0x61 => .{ .operation = .ADC, .address_mode = .IndirectX },
         0x71 => .{ .operation = .ADC, .address_mode = .IndirectY },
+
+        0x29 => .{ .operation = .AND, .address_mode = .Immediate },
+        0x25 => .{ .operation = .AND, .address_mode = .ZeroPage },
+        0x35 => .{ .operation = .AND, .address_mode = .ZeroPageX },
+        0x2D => .{ .operation = .AND, .address_mode = .Absolute },
+        0x3D => .{ .operation = .AND, .address_mode = .AbsoluteX },
+        0x39 => .{ .operation = .AND, .address_mode = .AbsoluteY },
+        0x21 => .{ .operation = .AND, .address_mode = .IndirectX },
+        0x31 => .{ .operation = .AND, .address_mode = .IndirectY },
+
+        // ASL
+        // ...
+        // TODO
 
         _ => null,
     };
