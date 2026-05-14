@@ -22,11 +22,26 @@ clock: u64,
 const instruction = @import("instruction.zig");
 
 fn read(self: *@This(), mode: instruction.AddressMode) u8 {
+    _ = self;
+    _ = mode;
     @panic("TODO");
 }
 
 fn write(self: *@This(), mode: instruction.AddressMode, data: u8) void {
+    _ = self;
+    _ = mode;
+    _ = data;
     @panic("TODO");
+}
+
+fn branch(self: *@This()) void {
+    _ = self;
+    @panic("NOT IMPLEMENTED");
+}
+
+// TODO use this for the first few
+fn bit(byte: u8, bit_number: u8) u1 {
+    return @as(u1, (byte >> bit_number) & 0b1);
 }
 
 pub fn execOne(self: *@This()) void {
@@ -68,6 +83,29 @@ pub fn execOne(self: *@This()) void {
             self.p.negative = result & 0x80 != 0;
 
             self.write(op.address_mode, result);
+        },
+        .BCC => {
+            if (self.p.carry == 0) {
+                self.branch();
+            }
+        },
+        .BCS => {
+            if (self.p.carry == 1) {
+                self.branch();
+            }
+        },
+        .BEQ => {
+            if (self.p.zero == 1) {
+                self.branch();
+            }
+        },
+        .BIT => {
+            const operand = self.read(op.address_mode);
+            const result = self.a & operand;
+
+            self.p.zero = result == 0;
+            self.p.overflow = bit(result, 6);
+            self.p.negative = bit(result, 7);
         },
         _ => @panic("opcode not implemented yet!")
     }
