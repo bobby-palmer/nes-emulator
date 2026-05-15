@@ -36,7 +36,7 @@ fn write(self: *@This(), mode: instruction.AddressMode, data: u8) void {
 
 fn branch(self: *@This()) void {
     _ = self;
-    @panic("NOT IMPLEMENTED");
+    @panic("TODO");
 }
 
 // TODO use this for the first few
@@ -84,21 +84,9 @@ pub fn execOne(self: *@This()) void {
 
             self.write(op.address_mode, result);
         },
-        .BCC => {
-            if (self.p.carry == 0) {
-                self.branch();
-            }
-        },
-        .BCS => {
-            if (self.p.carry == 1) {
-                self.branch();
-            }
-        },
-        .BEQ => {
-            if (self.p.zero == 1) {
-                self.branch();
-            }
-        },
+        .BCC => if (self.p.carry == 0) self.branch(),
+        .BCS => if (self.p.carry == 1) self.branch(),
+        .BEQ => if (self.p.zero == 1) self.branch(),
         .BIT => {
             const operand = self.read(op.address_mode);
             const result = self.a & operand;
@@ -106,6 +94,23 @@ pub fn execOne(self: *@This()) void {
             self.p.zero = result == 0;
             self.p.overflow = bit(result, 6);
             self.p.negative = bit(result, 7);
+        },
+        .BMI => if (self.p.negative == 1) self.branch(),
+        .BNE => if (self.p.zero == 0) self.branch(),
+        .BPL => if (self.p.negative == 0) self.branch(),
+        .BRK => @panic("TODO"),
+        .BVC => if (self.p.overflow == 0) self.branch(),
+        .BVS => if (self.p.overflow == 1) self.branch(),
+        .CLC => self.p.carry = 0,
+        .CLD => self.p.decimal = 0,
+        .CLI => self.p.interupt_disable = 0,
+        .CLV => self.p.overflow = 0,
+        .CMP => {
+            const operand = self.read(op.address_mode);
+
+            self.p.carry = self.a >= operand;
+            self.p.zero = self.a == operand;
+            self.p.negative = bit(self.a - operand, 7);
         },
         _ => @panic("opcode not implemented yet!")
     }
