@@ -9,17 +9,48 @@ const Status = packed struct (u8) {
     negative: u1,
 };
 
-// hardware
+const Bus = @import("Bus.zig");
+
 a: u8,
 x: u8,
 y: u8,
 pc: u16,
 s: u8,
 p: Status,
-// emulator
-clock: u64,
+bus: *Bus,
 
 const instruction = @import("instruction.zig");
+
+const Operand = union(enum) {
+    addr: u16,
+    accumulator,
+};
+
+fn decode(self: *@This()) void {
+    const raw_opcode = self.bus.read(self.pc);
+
+    self.pc += 1;
+
+    const inst = instruction.decode(raw_opcode)
+        orelse @panic("unknown opcode");
+
+    // TODO
+    const operand = switch (inst.address_mode) {
+        .Absolute => null,
+        .AbsoluteX => null,
+        .AbsoluteY => null,
+        .Accumulator => Operand{ .accumulator },
+        .Immediate => null,
+        .Implied => null,
+        .Indirect => null,
+        .IndirectX => null,
+        .IndirectY => null,
+        .Relative => null,
+        .ZeroPage => null,
+        .ZeroPageX => null,
+        .ZeroPageY => null,
+    };
+}
 
 fn read(self: *@This(), mode: instruction.AddressMode) u8 {
     _ = self;
@@ -39,7 +70,6 @@ fn branch(self: *@This()) void {
     @panic("TODO");
 }
 
-// TODO use this for the first few
 fn bit(byte: u8, bit_number: u8) u1 {
     return @as(u1, (byte >> bit_number) & 0b1);
 }
@@ -112,6 +142,115 @@ pub fn execOne(self: *@This()) void {
             self.p.zero = self.a == operand;
             self.p.negative = bit(self.a - operand, 7);
         },
-        _ => @panic("opcode not implemented yet!")
+        .CPX => {
+            const operand = self.read(op.address_mode);
+
+            self.p.carry = self.x >= operand;
+            self.p.zero = self.x == operand;
+            self.p.negative = bit(self.x - operand, 7);
+        },
+        .CPY => {
+            const operand = self.read(op.address_mode);
+
+            self.p.carry = self.y >= operand;
+            self.p.zero = self.y == operand;
+            self.p.negative = bit(self.y - operand, 7);
+        },
+        .DEC => {
+            const operand = self.read(op.address_mode);
+            const result = operand - 1;
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.write(op.address_mode, result);
+        },
+        .DEX => {
+            const result = self.x - 1;
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.x = result;
+        },
+        .DEY => {
+            const result = self.y - 1;
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.y = result;
+        },
+        .EOR => {
+            const operand = self.read(op.address_mode);
+            const result = self.a ^ operand;
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.a = result;
+        },
+        .INC => {
+            const operand = self.read(op.address_mode);
+            const result = operand + 1;
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.write(op.address_mode, result);
+        },
+        .INX => {
+            const result = self.x + 1;
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.x = result;
+        },
+        .INY => {
+            const result = self.y + 1;
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.y = result;
+        },
+        .JMP => @panic("TODO"),
+        .JSR => @panic("TODO"),
+        .LDA => {
+            const result = self.read(op.address_mode);
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.a = result;
+        },
+        .LDX => {
+            const result = self.read(op.address_mode);
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.x = result;
+        },
+        .LDY => {
+            const result = self.read(op.address_mode);
+
+            self.p.zero = result == 0;
+            self.p.negative = bit(result, 7);
+
+            self.y = result;
+        },
+        .LSR => {
+            const operand = self.read(op.address_mode);
+            const result = operand >> 1;
+
+            self.p.carry = bit(operand, 0);
+            self.p.zero = result == 0;
+            self.p.negative = 0;
+
+            self.write(op.address_mode, result);
+        },
+        _ => @panic("opcode not implemented!")
     }
 }
